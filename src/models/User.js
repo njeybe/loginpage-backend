@@ -8,11 +8,17 @@ const userSchema = new mongoose.Schema(
       require: true,
       unique: true,
       lowercase: true,
+      match: [
+        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+        "Please add a valid email",
+      ],
     },
 
     password: {
       type: String,
       require: true,
+      minlength: 6,
+      select: false,
     },
   },
   {
@@ -25,9 +31,13 @@ userSchema.pre("save", async function (next) {
     return next();
   }
 
-  const salt = await bcrypt.getSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next;
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
